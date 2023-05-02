@@ -1,5 +1,5 @@
 _G.BLACKLISTED = {
-	--["DisplayName"] = true,
+	--["ACID_lani"] = true,
 }
 
 for _, plr in pairs(game.Players:GetPlayers()) do
@@ -33,14 +33,16 @@ game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageReque
 _G.Enabled = true
 
 local function main(message, userDisplay)
-    local text = message:gsub("I love you", "ily"):gsub("I don't know what you're saying. Please teach me.", "I do not understand, try saying it without emojis and/or special characters.")
+    local text = message
     local response = game:HttpGet("https://api.simsimi.net/v2/?text="..text.."&lc="..language.."&cf="..censorSwearing)
     local data = HttpService:JSONDecode(response)
     
+    local responseText = data.success:gsub("i love you", "ily"):gsub("wtf", "wt$"):gsub("zex", "zesty"):gsub("\n", ""):gsub("I love you", "ily"):gsub("I don't know what you're saying. Please teach me.", "I do not understand, try saying it without emojis and/or special characters.")
+    
    wait()
    
-   game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer("[ChatBot]: "..userDisplay..", "..data.success.."", "All")
-   print(userDisplay..", "..data.success)
+   game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer("[ChatBot]: "..userDisplay..", "..responseText.."", "All")
+   print(userDisplay..", "..responseText)
 end
 
 Players.PlayerChatted:Connect(function(type, plr, message)
@@ -56,26 +58,34 @@ Players.PlayerChatted:Connect(function(type, plr, message)
 	end
 end)
 
-local queueonteleport = (syn and syn.queue_on_teleport) or queue_on_teleport or (fluxus and fluxus.queue_on_teleport)
-local httprequest = (syn and syn.request) or http and http.request or http_request or (fluxus and fluxus.request) or request
-local httpservice = game:GetService('HttpService')
-queueonteleport("loadstring(game:HttpGet(''))()")
+local function serverHop()
+   local queueonteleport = (syn and syn.queue_on_teleport) or queue_on_teleport or (fluxus and fluxus.queue_on_teleport)
+   local httprequest = (syn and syn.request) or http and http.request or http_request or (fluxus and fluxus.request) or request
+   local httpservice = game:GetService('HttpService')
+   queueonteleport("loadstring(game:HttpGet(''))()")
 
-local Http = game:GetService("HttpService")
-local TPS = game:GetService("TeleportService")
-local Api = "https://games.roblox.com/v1/games/"
+   local Http = game:GetService("HttpService")
+   local TPS = game:GetService("TeleportService")
+   local Api = "https://games.roblox.com/v1/games/"
 
-local _place = game.PlaceId
-local _servers = Api.._place.."/servers/Public?sortOrder=Desc&limit=100"
-function ListServers(cursor)
-   local Raw = game:HttpGet(_servers .. ((cursor and "&cursor="..cursor) or ""))
-   return Http:JSONDecode(Raw)
+   local _place = game.PlaceId
+   local _servers = Api.._place.."/servers/Public?sortOrder=Desc&limit=100"
+   function ListServers(cursor)
+      local Raw = game:HttpGet(_servers .. ((cursor and "&cursor="..cursor) or ""))
+      return Http:JSONDecode(Raw)
+   end
+
+   local Server, Next; repeat
+      local Servers = ListServers(Next)
+      Server = Servers.data[1]
+      Next = Servers.nextPageCursor
+   until Server
+
+   TPS:TeleportToPlaceInstance(_place,Server.id,game.Players.LocalPlayer)
 end
 
-local Server, Next; repeat
-   local Servers = ListServers(Next)
-   Server = Servers.data[1]
-   Next = Servers.nextPageCursor
-until Server
-
-TPS:TeleportToPlaceInstance(_place,Server.id,game.Players.LocalPlayer)
+-- Run the server hop function every 15 minutes
+while true do
+   serverHop()
+   wait(15 * 60)
+end
